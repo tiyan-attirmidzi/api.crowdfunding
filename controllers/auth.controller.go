@@ -26,7 +26,7 @@ func (c *authController) SignUp(ctx *gin.Context) {
 			"User Sign Up Failed!",
 			http.StatusUnprocessableEntity,
 			"error",
-			gin.H{"errors": helpers.FieldValidation(err)},
+			gin.H{"errors": helpers.InputValidation(err)},
 		)
 		ctx.JSON(http.StatusUnprocessableEntity, res)
 		return
