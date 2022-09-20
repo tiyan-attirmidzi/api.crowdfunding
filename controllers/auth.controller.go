@@ -43,6 +43,6 @@ func (c *authController) SignUp(ctx *gin.Context) {
 	formatter := dto.FormatUser(newUser, "TokenHashToken")
 
 	res := helpers.ResponseJSON("User Signed Up Successfully!", http.StatusCreated, "success", formatter)
-	ctx.JSON(http.StatusOK, res)
+	ctx.JSON(http.StatusCreated, res)
 
 }
