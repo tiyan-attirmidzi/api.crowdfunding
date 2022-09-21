@@ -2,7 +2,9 @@ package services
 
 import (
 	"errors"
+	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/entities"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/entities/dto"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/repositories"
@@ -12,8 +14,7 @@ import (
 type AuthService interface {
 	SignUp(user dto.SignUp) (entities.User, error)
 	SignIn(user dto.SignIn) (entities.User, error)
-	IsEmailAvailable(user dto.CheckEmail) (bool, error)
-	SaveAvatar(ID int, fileLocation string) (entities.User, error)
+	GenerateToken(data entities.User) (string, error)
 }
 
 type authService struct {
@@ -74,39 +75,35 @@ func (s *authService) SignIn(data dto.SignIn) (entities.User, error) {
 
 }
 
-func (s *authService) IsEmailAvailable(data dto.CheckEmail) (bool, error) {
-
-	email := data.Email
-
-	user, err := s.userRepository.FindByEmail(email)
-
-	if err != nil {
-		return false, err
-	}
-
-	if user.ID == 0 {
-		return true, nil
-	}
-
-	return false, errors.New("email has been registered")
-
+type jwtCustomClaim struct {
+	ID         int    `json:"user_id"`
+	Name       string `json:"name"`
+	Occupation string `json:"occupation"`
+	Email      string `json:"email"`
+	jwt.StandardClaims
 }
 
-func (s *authService) SaveAvatar(ID int, fileLocation string) (entities.User, error) {
+// TODO: Change Later
+var secretKey = []byte("S3c12e7_k3Y")
 
-	user, err := s.userRepository.FindByID(ID)
-
-	if err != nil {
-		return user, err
+func (s *authService) GenerateToken(data entities.User) (string, error) {
+	claims := &jwtCustomClaim{
+		ID:         data.ID,
+		Name:       data.Name,
+		Occupation: data.Occupation,
+		Email:      data.Email,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
+		},
 	}
 
-	user.AvatarFileName = fileLocation
-
-	updatedUser, err := s.userRepository.Update(user)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString([]byte(secretKey))
 
 	if err != nil {
-		return updatedUser, err
+		return signedToken, err
 	}
 
-	return updatedUser, nil
+	return signedToken, nil
+
 }

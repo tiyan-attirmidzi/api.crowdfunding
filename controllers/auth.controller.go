@@ -1,12 +1,9 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
-	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/entities/dto"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/helpers"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/services"
@@ -14,10 +11,11 @@ import (
 
 type authController struct {
 	authService services.AuthService
+	userService services.UserService
 }
 
-func NewAuthController(authService services.AuthService) *authController {
-	return &authController{authService}
+func NewAuthController(authService services.AuthService, userService services.UserService) *authController {
+	return &authController{authService, userService}
 }
 
 func (c *authController) SignUp(ctx *gin.Context) {
@@ -26,7 +24,7 @@ func (c *authController) SignUp(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		res := helpers.ResponseJSON(
-			"User Sign Up Failed!",
+			"user sign up failed!",
 			http.StatusUnprocessableEntity,
 			"error",
 			gin.H{"errors": helpers.InputValidation(err)},
@@ -35,17 +33,37 @@ func (c *authController) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	newUser, err := c.authService.SignUp(payload)
+	// check email availability
+	_, err := c.userService.IsEmailAvailable(payload.Email)
 
 	if err != nil {
-		res := helpers.ResponseJSON("User Signed Up Failed!", http.StatusBadRequest, "error", err.Error())
+		res := helpers.ResponseJSON(
+			"email address has been registered!",
+			http.StatusUnprocessableEntity,
+			"error",
+			nil,
+		)
+		ctx.JSON(http.StatusUnprocessableEntity, res)
+		return
+	}
+
+	signedUp, err := c.authService.SignUp(payload)
+
+	if err != nil {
+		res := helpers.ResponseJSON("user signed up failed!", http.StatusBadRequest, "error", gin.H{"errors": err.Error()})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	formatter := dto.FormatUser(newUser, "TokenHashToken")
+	token, err := c.authService.GenerateToken(signedUp)
 
-	res := helpers.ResponseJSON("User Signed Up Successfully!", http.StatusCreated, "success", formatter)
+	if err != nil {
+		res := helpers.ResponseJSON("user signed up failed!", http.StatusBadRequest, "error", gin.H{"errors": err.Error()})
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	res := helpers.ResponseJSON("user signed up successfully!", http.StatusCreated, "success", dto.FormatAuth(signedUp, token))
 	ctx.JSON(http.StatusCreated, res)
 
 }
@@ -56,7 +74,7 @@ func (c *authController) SignIn(ctx *gin.Context) {
 
 	if err := ctx.ShouldBindJSON(&payload); err != nil {
 		res := helpers.ResponseJSON(
-			"User Sign In Failed!",
+			"user sign in failed!",
 			http.StatusUnprocessableEntity,
 			"error",
 			gin.H{"errors": helpers.InputValidation(err)},
@@ -69,110 +87,24 @@ func (c *authController) SignIn(ctx *gin.Context) {
 
 	if err != nil {
 		res := helpers.ResponseJSON(
-			"User Sign In Failed!",
-			http.StatusUnprocessableEntity,
+			"user sign in failed!",
+			http.StatusBadRequest,
 			"error",
 			gin.H{"errors": err.Error()},
 		)
-		ctx.JSON(http.StatusUnprocessableEntity, res)
-		return
-	}
-
-	formatter := dto.FormatUser(signedIn, "TokenHashToken")
-
-	res := helpers.ResponseJSON("User Signed In Successfully!", http.StatusOK, "success", formatter)
-	ctx.JSON(http.StatusOK, res)
-
-}
-
-func (c *authController) CheckEmailAvailability(ctx *gin.Context) {
-
-	var payload dto.CheckEmail
-
-	if err := ctx.ShouldBindJSON(&payload); err != nil {
-		res := helpers.ResponseJSON(
-			"Email Checking Failed!",
-			http.StatusUnprocessableEntity,
-			"error",
-			gin.H{"errors": helpers.InputValidation(err)},
-		)
-		ctx.JSON(http.StatusUnprocessableEntity, res)
-		return
-	}
-
-	isEmailAvailable, err := c.authService.IsEmailAvailable(payload)
-
-	if err != nil {
-		res := helpers.ResponseJSON(
-			"Email Address Has Been Registered!",
-			http.StatusUnprocessableEntity,
-			"error",
-			gin.H{"is_available": isEmailAvailable},
-		)
-		ctx.JSON(http.StatusUnprocessableEntity, res)
-		return
-	}
-
-	res := helpers.ResponseJSON("Email Address Can Be Used!", http.StatusOK, "success", gin.H{"is_available": isEmailAvailable})
-	ctx.JSON(http.StatusOK, res)
-
-}
-
-func (c *authController) UploadAvatar(ctx *gin.Context) {
-
-	file, err := ctx.FormFile("avatar")
-
-	if err != nil {
-		res := helpers.ResponseJSON(
-			"Failed to Upload Avatar image!",
-			http.StatusBadRequest,
-			"error",
-			gin.H{"is_uploaded": false},
-		)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	fmt.Println("INI FILE =>", file.Header)
-
-	// retrieve file information
-	extension := filepath.Ext(file.Filename)
-	// path file and generate filename
-	pathFile := "uploads/images/" + uuid.New().String() + extension
-
-	if err = ctx.SaveUploadedFile(file, pathFile); err != nil {
-		res := helpers.ResponseJSON(
-			"Failed to Upload Avatar image!",
-			http.StatusBadRequest,
-			"error",
-			err.Error(),
-		)
-		ctx.JSON(http.StatusBadRequest, res)
-		return
-	}
-
-	// TODO: change to dynamic latter
-	userID := 1
-
-	_, err = c.authService.SaveAvatar(userID, pathFile)
+	token, err := c.authService.GenerateToken(signedIn)
 
 	if err != nil {
-		res := helpers.ResponseJSON(
-			"Failed to Upload Avatar image!",
-			http.StatusBadRequest,
-			"error",
-			gin.H{"is_uploaded": false},
-		)
+		res := helpers.ResponseJSON("user sign up failed!", http.StatusBadRequest, "error", gin.H{"errors": err.Error()})
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	res := helpers.ResponseJSON(
-		"Uploaded Avatar Successfully!",
-		http.StatusOK,
-		"error",
-		gin.H{"is_uploaded": true},
-	)
+	res := helpers.ResponseJSON("user signed in successfully!", http.StatusOK, "success", dto.FormatAuth(signedIn, token))
 	ctx.JSON(http.StatusOK, res)
 
 }
