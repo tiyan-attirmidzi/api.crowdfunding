@@ -114,3 +114,58 @@ func (c *authController) CheckEmailAvailability(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 
 }
+
+func (c *authController) UploadAvatar(ctx *gin.Context) {
+
+	file, err := ctx.FormFile("avatar")
+
+	if err != nil {
+		res := helpers.ResponseJSON(
+			"Failed to Upload Avatar image!",
+			http.StatusBadRequest,
+			"error",
+			gin.H{"is_uploaded": false},
+		)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	pathFile := "uploads/images/" + file.Filename
+	err = ctx.SaveUploadedFile(file, pathFile)
+
+	if err != nil {
+		res := helpers.ResponseJSON(
+			"Failed to Upload Avatar image!",
+			http.StatusBadRequest,
+			"error",
+			err.Error(),
+		)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	// TODO: change to dynamic
+	userID := 1
+
+	_, err = c.authService.SaveAvatar(userID, pathFile)
+
+	if err != nil {
+		res := helpers.ResponseJSON(
+			"Failed to Upload Avatar image!",
+			http.StatusBadRequest,
+			"error",
+			gin.H{"is_uploaded": false},
+		)
+		ctx.JSON(http.StatusBadRequest, res)
+		return
+	}
+
+	res := helpers.ResponseJSON(
+		"Uploaded Avatar Successfully!",
+		http.StatusOK,
+		"error",
+		gin.H{"is_uploaded": true},
+	)
+	ctx.JSON(http.StatusOK, res)
+
+}

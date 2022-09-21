@@ -13,6 +13,7 @@ type AuthService interface {
 	SignUp(user dto.SignUp) (entities.User, error)
 	SignIn(user dto.SignIn) (entities.User, error)
 	IsEmailAvailable(user dto.CheckEmail) (bool, error)
+	SaveAvatar(ID int, fileLocation string) (entities.User, error)
 }
 
 type authService struct {
@@ -89,4 +90,23 @@ func (s *authService) IsEmailAvailable(data dto.CheckEmail) (bool, error) {
 
 	return false, errors.New("email has been registered")
 
+}
+
+func (s *authService) SaveAvatar(ID int, fileLocation string) (entities.User, error) {
+
+	user, err := s.userRepository.FindByID(ID)
+
+	if err != nil {
+		return user, err
+	}
+
+	user.AvatarFileName = fileLocation
+
+	updatedUser, err := s.userRepository.Update(user)
+
+	if err != nil {
+		return updatedUser, err
+	}
+
+	return updatedUser, nil
 }
