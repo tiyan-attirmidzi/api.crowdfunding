@@ -1,9 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/entities/dto"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/helpers"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/services"
@@ -130,10 +133,14 @@ func (c *authController) UploadAvatar(ctx *gin.Context) {
 		return
 	}
 
-	pathFile := "uploads/images/" + file.Filename
-	err = ctx.SaveUploadedFile(file, pathFile)
+	fmt.Println("INI FILE =>", file.Header)
 
-	if err != nil {
+	// retrieve file information
+	extension := filepath.Ext(file.Filename)
+	// path file and generate filename
+	pathFile := "uploads/images/" + uuid.New().String() + extension
+
+	if err = ctx.SaveUploadedFile(file, pathFile); err != nil {
 		res := helpers.ResponseJSON(
 			"Failed to Upload Avatar image!",
 			http.StatusBadRequest,
@@ -144,7 +151,7 @@ func (c *authController) UploadAvatar(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: change to dynamic
+	// TODO: change to dynamic latter
 	userID := 1
 
 	_, err = c.authService.SaveAvatar(userID, pathFile)
