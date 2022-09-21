@@ -12,6 +12,7 @@ import (
 type AuthService interface {
 	SignUp(user dto.SignUp) (entities.User, error)
 	SignIn(user dto.SignIn) (entities.User, error)
+	IsEmailAvailable(user dto.CheckEmail) (bool, error)
 }
 
 type authService struct {
@@ -69,5 +70,23 @@ func (s *authService) SignIn(data dto.SignIn) (entities.User, error) {
 	}
 
 	return user, nil
+
+}
+
+func (s *authService) IsEmailAvailable(data dto.CheckEmail) (bool, error) {
+
+	email := data.Email
+
+	user, err := s.userRepository.FindByEmail(email)
+
+	if err != nil {
+		return false, err
+	}
+
+	if user.ID == 0 {
+		return true, nil
+	}
+
+	return false, errors.New("email has been registered")
 
 }

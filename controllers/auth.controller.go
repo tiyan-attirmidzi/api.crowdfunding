@@ -81,3 +81,36 @@ func (c *authController) SignIn(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 
 }
+
+func (c *authController) CheckEmailAvailability(ctx *gin.Context) {
+
+	var payload dto.CheckEmail
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		res := helpers.ResponseJSON(
+			"Email Checking Failed!",
+			http.StatusUnprocessableEntity,
+			"error",
+			gin.H{"errors": helpers.InputValidation(err)},
+		)
+		ctx.JSON(http.StatusUnprocessableEntity, res)
+		return
+	}
+
+	isEmailAvailable, err := c.authService.IsEmailAvailable(payload)
+
+	if err != nil {
+		res := helpers.ResponseJSON(
+			"Email Address Has Been Registered!",
+			http.StatusUnprocessableEntity,
+			"error",
+			gin.H{"is_available": isEmailAvailable},
+		)
+		ctx.JSON(http.StatusUnprocessableEntity, res)
+		return
+	}
+
+	res := helpers.ResponseJSON("Email Address Can Be Used!", http.StatusOK, "success", gin.H{"is_available": isEmailAvailable})
+	ctx.JSON(http.StatusOK, res)
+
+}

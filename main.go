@@ -37,6 +37,7 @@ func main() {
 		{
 			auth.POST("/sign-up", authController.SignUp)
 			auth.POST("/sign-in", authController.SignIn)
+			auth.POST("/email-check", authController.CheckEmailAvailability)
 		}
 	}
 
