@@ -46,3 +46,38 @@ func (c *authController) SignUp(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, res)
 
 }
+
+func (c *authController) SignIn(ctx *gin.Context) {
+
+	var payload dto.SignIn
+
+	if err := ctx.ShouldBindJSON(&payload); err != nil {
+		res := helpers.ResponseJSON(
+			"User Sign In Failed!",
+			http.StatusUnprocessableEntity,
+			"error",
+			gin.H{"errors": helpers.InputValidation(err)},
+		)
+		ctx.JSON(http.StatusUnprocessableEntity, res)
+		return
+	}
+
+	signedIn, err := c.authService.SignIn(payload)
+
+	if err != nil {
+		res := helpers.ResponseJSON(
+			"User Sign In Failed!",
+			http.StatusUnprocessableEntity,
+			"error",
+			gin.H{"errors": err.Error()},
+		)
+		ctx.JSON(http.StatusUnprocessableEntity, res)
+		return
+	}
+
+	formatter := dto.FormatUser(signedIn, "TokenHashToken")
+
+	res := helpers.ResponseJSON("User Signed In Successfully!", http.StatusOK, "success", formatter)
+	ctx.JSON(http.StatusOK, res)
+
+}

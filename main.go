@@ -36,6 +36,7 @@ func main() {
 		auth := apiV1.Group("/auth")
 		{
 			auth.POST("/sign-up", authController.SignUp)
+			auth.POST("/sign-in", authController.SignIn)
 		}
 	}
 

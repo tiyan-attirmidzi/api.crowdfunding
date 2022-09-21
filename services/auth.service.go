@@ -1,6 +1,8 @@
 package services
 
 import (
+	"errors"
+
 	"github.com/tiyan-attirmidzi/api.crowdfunding/entities"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/entities/dto"
 	"github.com/tiyan-attirmidzi/api.crowdfunding/repositories"
@@ -9,6 +11,7 @@ import (
 
 type AuthService interface {
 	SignUp(user dto.SignUp) (entities.User, error)
+	SignIn(user dto.SignIn) (entities.User, error)
 }
 
 type authService struct {
@@ -41,5 +44,30 @@ func (s *authService) SignUp(data dto.SignUp) (entities.User, error) {
 	}
 
 	return newUser, nil
+
+}
+
+func (s *authService) SignIn(data dto.SignIn) (entities.User, error) {
+
+	email := data.Email
+	password := data.Password
+
+	user, err := s.userRepository.FindByEmail(email)
+
+	if err != nil {
+		return user, err
+	}
+
+	if user.ID == 0 {
+		return user, errors.New("no user found on that email")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+
+	if err != nil {
+		return user, errors.New("password incorrect")
+	}
+
+	return user, nil
 
 }
