@@ -11,7 +11,6 @@ type UserFormatter struct {
 	Name       string `json:"name"`
 	Occupation string `json:"occupation"`
 	Email      string `json:"email"`
-	Token      string `json:"token"`
 }
 
 func FormatUser(user entities.User, token string) UserFormatter {
@@ -21,7 +20,6 @@ func FormatUser(user entities.User, token string) UserFormatter {
 		Name:       user.Name,
 		Occupation: user.Occupation,
 		Email:      user.Email,
-		Token:      token,
 	}
 
 	return formatter

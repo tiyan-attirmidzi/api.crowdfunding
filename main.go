@@ -27,7 +27,9 @@ func main() {
 	// REPOSITORY, SERVICE, CONTROLLER and ROUTE
 	userRepository := repositories.NewUserRepository(db)
 	authService := services.NewAuthService(userRepository)
-	authController := controllers.NewAuthController(authService)
+	userService := services.NewUserService(userRepository)
+	authController := controllers.NewAuthController(authService, userService)
+	userController := controllers.NewUserController(userService)
 
 	router := gin.Default()
 
@@ -36,6 +38,12 @@ func main() {
 		auth := apiV1.Group("/auth")
 		{
 			auth.POST("/sign-up", authController.SignUp)
+			auth.POST("/sign-in", authController.SignIn)
+		}
+		user := apiV1.Group("/users")
+		{
+			user.POST("/avatar", userController.UploadAvatar)
+			user.POST("/email-check", userController.CheckEmailAvailability)
 		}
 	}
 
